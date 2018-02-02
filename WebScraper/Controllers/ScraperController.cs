@@ -154,12 +154,15 @@ namespace WebScraper.Controllers
 
                 switch (credentials.method)
                 {
+                    //Resets lists
                     case "reset":
                         GlobalServices.lstJobs.Clear();
                         GlobalServices.lstThread.Clear();
                         return string.Empty;
+                        //Gets cities
                     case "states":
                         return GetCities(credentials.state);                        
+                        //Gets results
                     case "results":
                         //List<WeatherData> response = GlobalServices.lstJobs.Where(x => x.Key == credentials.jobID).First().Value;
                         string html = "";
