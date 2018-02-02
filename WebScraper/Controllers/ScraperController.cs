@@ -23,6 +23,11 @@ namespace WebScraper.Controllers
 
         #endregion
 
+        /// <summary>
+        /// Gets the status of all threads that are currently running
+        /// </summary>
+        /// <param name="state"></param>
+        /// <returns></returns>
         // GET api/<controller>/5
         [HttpGet]
         public object Get(string state)//(HttpRequestMessage value)
@@ -32,10 +37,6 @@ namespace WebScraper.Controllers
 
             try
             {
-                //data = value.RequestUri.AbsoluteUri.Replace("%22","");
-
-                //int idx = data.IndexOf("state:");
-                //string state = data.Substring(idx + 6, 2).Replace(":","").Replace(",","");
                                        
                 if (state.Equals("0"))
                 {
@@ -61,11 +62,21 @@ namespace WebScraper.Controllers
             return html;
         }
 
+        /// <summary>
+        /// Retrieves all cities for the state the given state
+        /// </summary>
+        /// <param name="st"></param>
+        /// <returns></returns>
         private List<string> GetCities(string st)
         {
             return GlobalServices.theDictionary.Where(x => x.Key == st).First().Value.ToList();
         }
 
+        /// <summary>
+        /// Depending on the method being used, the api will retieve will receive a list of cities status and results
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         // POST api/<controller>
         [HttpPost]
         public object Post(HttpRequestMessage value)
@@ -142,6 +153,10 @@ namespace WebScraper.Controllers
             return result;
         }
 
+        /// <summary>
+        /// Runs the scrapehtml method for threading in another function
+        /// </summary>
+        /// <param name="credentials"></param>
         private void RunJob(api credentials)
         {
             try
@@ -251,6 +266,9 @@ namespace WebScraper.Controllers
         public object Object { get; set; }
     }
 
+    /// <summary>
+    /// Model for deserializing data coming from the ajax call
+    /// </summary>
     public class api
     {
         public string state { get; set; }
