@@ -1,0 +1,368 @@
+﻿@{
+    Layout = null;
+    ViewBag.Title = "WebScraper";
+}
+
+<script src="../Scripts/jquery-3.3.1.min.js"></script>
+
+<body>
+    <div class="jumbotron">
+        <h1>Welcome to WebScraper!</h1>
+
+    </div>
+    <div class="row" style="align-content:center;">
+        <div class="col-md-4">
+            <h2>Getting started</h2>
+            <p>Please select a city and state to get the weather</p>
+            <p>
+                <div class="row">
+                    <h4><u>City & State</u></h4>
+                    <select id="lstState" style="width:150px;" onchange="updateCities()">
+                        <option value="0" selected="selected">Select A State</option>
+                        @foreach (var state in Model.State)
+                        {
+                            <option value="@state">@state</option>
+                        }
+                    </select>
+                </div>
+                <br />
+                <div class="row">
+                    <select id="lstCity" style="width:150px;">
+                        <option value="0" selected="selected">Select A City</option>
+                    </select>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-md-2">
+                        <input type="button" style="width:150px;" id="btnScrape" value="Scrape" onclick="Scrape();" />
+                        <br />
+                        <br />
+                        <input type="button" style="width:150px;" id="btnScrapeAll" value="ScrapeAll" onclick="ScrapeAll();" />
+                    </div>
+
+                </div>
+                <br />
+                <div class="row">
+                    <select id="lstJobs" style="width:250px;">
+                        <option value="0" selected="selected">Select A Job</option>
+                    </select>
+                </div>
+
+                <br />
+
+                <div class="row">
+                    <input type="button" style="width:150px;" id="btnStatus" value="Check Status" onclick="Status();" />
+                </div>
+
+                <br />
+
+                <div class="row">
+                    <input type="button" style="width:150px;" id="btnResults" value="Retrieve Results" onclick="Retrieve();" />
+                </div>
+            </p>
+        </div>
+    </div>
+    <div id="statusRow" class="row">
+        <span><u>You can manually check status by clicking "Check Status" or this will check every second</u></span>
+        <div class="col-md-1" style="overflow:scroll; height:200px;">
+            <div class="row">
+                <br />
+                <table id="status" cellspacing="0">
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="row" style="align-content:center;">
+        <div class="col-md-1">
+            <div class="row">
+                
+                <span><u>Weather Data</u></span>
+                <br />
+                <table id="jobs" cellspacing="0">
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        setTimeout(StatusAll(), interval);
+    });
+
+    function Retrieve() {
+        var jobID = $('#lstJobs').val();
+
+        if (jobID == '0' || jobID == 0) {
+            alert('No job selected!');
+            return;
+        }
+
+        //var data = ajaxCall('api/Scraper', { jobID: jobID, method: 'results' });
+
+        $.ajax({
+            url: 'api/Scraper',
+            type: 'POST',
+            cache: false,
+            async: true,
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ jobID: jobID, method: 'results' }),
+            success: function (data) {
+                if (data == null || data == 'undefined')
+                { return; }
+
+                $('#jobs').empty();
+
+                var html = '';
+                for (i = 0; i < data.length; i++) {
+
+                    html += '<tr><td><b>' + data[i].period + ':</b> ' + data[i].shortDesc + '</td></tr>';
+                }
+
+                $('#jobs').append(html);
+                return;
+            },
+            error: function (response) {
+                console.log(response.message);
+                return;
+                //alert(response.message);
+            }
+        });        
+
+    }
+
+
+    var interval = 1000;
+    function StatusAll()
+    {
+        var state = $('#lstState').val();
+
+        //if (state == '0' || state == 0)
+        //{ return;}
+        $.ajax({
+            url: 'api/Scraper/5',
+            type: 'GET',
+            cache: false,
+            async: true,
+            contentType: "application/json",
+            dataType: "json",
+            data: {state: state},
+            success: function (data) {
+                if (data == null || data == 'undefined')
+                { return; }
+
+                $('#status').empty();
+
+                var html = '';
+                for (i = 0; i < data.length; i++) {
+
+                    html += '<tr><td><b>' + data[i] + '</td></tr>';
+                }
+
+                $('#status').append(html);
+                return;
+            },
+            error: function (response) {
+                console.log(response.message);
+                return;
+            }, complete: function (data)
+            {
+                setTimeout(StatusAll(), interval);
+            }
+        });
+    }
+
+    function Status() {
+        var jobID = $('#lstJobs').val();
+
+        if (jobID == '0' || jobID == 0) {
+            alert('No job selected!');
+            return;
+        }
+
+        //var data = ajaxCall('api/Scraper', { jobID: jobID, method: 'status' });
+
+        $.ajax({
+            url: 'api/Scraper',
+            type: 'POST',
+            cache: false,
+            async: true,
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ jobID: jobID, method: 'status' }),
+            success: function (data) {
+                if (data == null || data == 'undefined')
+                { return; }
+
+                alert(data);
+                return;
+            },
+            error: function (response) {
+                console.log(response.message);
+                return;
+                //alert(response.message);
+            }
+        });
+    }
+
+    function ajaxCall(url, data) {
+        $.ajax({
+            url: url,
+            type: 'POST',
+            cache: false,
+            async: true,
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify(data),
+            success: function (response) {
+                alert(response);
+                return response;
+            },
+            error: function (response) {
+                alert('error');
+                return null;
+                //alert(response.message);
+            }
+        });
+    }
+
+    var prvID = '';
+
+    function ScrapeAll()
+    {
+        var val = $('#lstState').val();
+
+        if (val == 0 || val == '0')
+        {
+            alert('Select a state!');
+            return;
+        }
+
+        var selectBox = document.getElementById("lstCity");
+        var i;//selectBox.length
+        for (i = 1; i < selectBox.length ; i++) {
+
+            var city = selectBox.options[i].value;
+            var state = city.toString().substring(0, 2);
+            city = city.toString().replace(state, '');
+            
+            GoScrape(city, state);
+        }
+    }
+
+    function Scrape() {
+        //var data = ajaxCall('api/Scraper', { state: 'PA', method: 'states' });
+        var city = $('#lstCity').val();
+
+        if (city == '0' || city == 0) {
+            alert('Please select a city');
+            return;
+        }
+
+        var state = city.toString().substring(0, 2);
+        city = city.toString().replace(state, '');
+
+        GoScrape(city, state);
+    }
+
+    function GoScrape(city, state)
+    {
+        var guid = GUID();
+
+        $('#lstJobs').append($('<option>',
+                   {
+                       value: guid,
+                       text: city + ', ' + state
+                   }));
+
+        $.ajax({
+            url: 'api/Scraper',
+            type: 'POST',
+            cache: false,
+            async: true,
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ state: state, city: city, method: 'scrape', jobID: guid }),
+            success: function (data) {
+                if (data[0] == null || data[0] == 'undefined')
+                { return; }
+                else if (data[0].Status != 200 && data[0].Status != '200')
+                { return; }
+
+                //$('#lstJobs').append($('<option>',
+                //   {
+                //       value: data[0].Message,
+                //       text: $('#lstCity').val().toString().replace($('#lstState').val(), '') + ', ' + $('#lstState').val()
+                //   }));
+                return;
+            },
+            error: function (response) {
+                console.log(response.message);
+                return null;
+                //alert(response.message);
+            }
+        });
+    }
+
+    function updateCities() {
+        var state = $('#lstState').val();
+
+        if (state == '0' || state == 0)
+        { return; }
+
+        //var data = ajaxCall('api/Scraper', { state: state, method: 'states' });
+        //alert(data);
+        $('#status').empty();
+        $.ajax({
+            url: 'api/Scraper',
+            type: 'POST',
+            cache: false,
+            async: true,
+            contentType: "application/json",
+            dataType: "json",
+            data: JSON.stringify({ state: state, method: 'states' }),
+            success: function (data) {
+                if (data == null || data == 'undefined')
+                { return; }
+
+                $('#lstCity').empty();
+
+                $('#lstCity').append($('<option>',
+                {
+                    value: 0,
+                    text: 'Select A City'
+                }));
+
+                for (i = 0; i < data.length; i++) {
+                    $('#lstCity').append($('<option>',
+                    {
+                        value: state + data[i],
+                        text: data[i]
+                    }));
+                }
+                return;
+            },
+            error: function (response) {
+                console.log(response.message);
+                return;
+                //alert(response.message);
+            }
+        });
+        
+        return;
+    }
+
+    function randomNum() {
+        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
+    }
+
+    // then to call it, plus stitch in '4' in the third group
+    function GUID()
+    {
+        return (randomNum() + randomNum() + randomNum() + "4" + randomNum().substr(0, 3) + randomNum() + randomNum() + randomNum() + randomNum()).toLowerCase();
+    }
+
+</script>
