@@ -24,20 +24,74 @@ namespace WebScraper.Controllers
         #endregion
 
         /// <summary>
+        /// Loops through every state for their cities and creates a thread
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="method"></param>
+        public void Get(string state, string method, string dummy, string test)
+        {
+            Thread thread = new Thread(() =>
+                ScrapeAll(state)
+
+            );
+            thread.Start();
+        }
+        public void ScrapeAll(string state)
+        {
+            List<string> cities = GlobalServices.theDictionary.Where(x => x.Key == state).First().Value;
+
+            foreach (var city in cities)
+            {
+                api credentials = new api { state = state, city = city };
+
+                Thread thread = new Thread(() =>
+                    RunJob(credentials)
+                    );
+
+                GlobalServices.lstThread.Add("scrapeall|" + city + ", " + state, thread);
+                thread.Start();
+            }
+        }
+
+        public void Get(string state, string city, string jobID)
+        {
+            curJobID = jobID;
+            api credentials = new api { state = state, city = city, jobID = jobID };
+                Thread thread = new Thread(() =>
+                    RunJob(credentials)
+                    );
+
+                GlobalServices.lstThread.Add(jobID + "|" + city + ", " + state, thread);
+                thread.Start();
+        }
+
+        public object Get(string jobID, string method)
+        {
+            Thread theThread = GlobalServices.lstThread.Where(x => x.Key.Split('|')[0] == jobID).First().Value;
+
+            return theThread.ThreadState == ThreadState.Stopped ? "Completed" : theThread.ThreadState.ToString();
+        }
+
+        /// <summary>
         /// Gets the status of all threads that are currently running
         /// </summary>
         /// <param name="state"></param>
         /// <returns></returns>
         // GET api/<controller>/5
         [HttpGet]
-        public object Get(string state)//(HttpRequestMessage value)
+        public async Task<object> Get(string state)//(HttpRequestMessage value)
+        {
+            return await GetStatus(state);
+        }
+
+        private async Task<List<string>> GetStatus(string state)
         {
             string data = string.Empty;
             List<string> html = new List<string>();
 
             try
             {
-                                       
+
                 if (state.Equals("0"))
                 {
                     html.Add("No jobs are running");
@@ -54,14 +108,13 @@ namespace WebScraper.Controllers
 
                 return html;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
             }
 
             return html;
         }
-
         /// <summary>
         /// Retrieves all cities for the state the given state
         /// </summary>
@@ -79,7 +132,12 @@ namespace WebScraper.Controllers
         /// <returns></returns>
         // POST api/<controller>
         [HttpPost]
-        public object Post(HttpRequestMessage value)
+        public async Task<object> Post(HttpRequestMessage value)
+        {
+            return await PostJob(value);
+        }
+
+        private async Task<object> PostJob(HttpRequestMessage value)
         {
             JArray result = new JArray();
             JResult jresult = new JResult();
@@ -96,50 +154,41 @@ namespace WebScraper.Controllers
 
                 switch (credentials.method)
                 {
+                    case "reset":
+                        GlobalServices.lstJobs.Clear();
+                        GlobalServices.lstThread.Clear();
+                        return string.Empty;
                     case "states":
-                        return GetCities(credentials.state);
-                    case "status":
-                        Thread theThread = GlobalServices.lstThread.Where(x => x.Key.Split('|')[0] == credentials.jobID).First().Value;
-
-                        return theThread.ThreadState == ThreadState.Stopped ? "Completed" : theThread.ThreadState.ToString();
-                    case "statusall":
-                        List<string> html = new List<string>();
-                        if(credentials.state.Equals("0"))
-                        {
-                            html.Add("No jobs are running");
-                            return html;
-                        }
-
-                        var tmpThread = GlobalServices.lstThread.Where(x => x.Key.Contains(credentials.state)).ToList();
-                        foreach (var d in tmpThread)
-                        {
-                            html.Add("<br>" + d.Key.Split('|')[1] + " Status: " + (d.Value.ThreadState == ThreadState.Stopped ? "Completed" : d.Value.ThreadState.ToString()));
-                        }
-                        if (html.Count.Equals(0))
-                        { html.Add("No jobs are running"); }
-
-                        return html;
+                        return GetCities(credentials.state);                        
                     case "results":
-                        List<WeatherData> response = GlobalServices.lstJobs.Where(x => x.Key == credentials.jobID).First().Value;
-                        return response;
+                        //List<WeatherData> response = GlobalServices.lstJobs.Where(x => x.Key == credentials.jobID).First().Value;
+                        string html = "";
+                        var newList = GlobalServices.lstJobs.ToList();
+                        foreach (var job in newList)
+                        {
+                            int counter = 1;
+                            foreach (var weather in job.Value)
+                            {
+                                if (counter.Equals(1))
+                                {
+                                    html += "<tr><td><b><u>" + job.Key.Split('|')[1] + "</u></b></td></tr>";
+                                }
+
+                                html += "<tr><td><b>" + weather.period + ":</b> " + weather.shortDesc + "</td></tr>";
+
+                                if (job.Value.Count.Equals(counter))
+                                {
+                                    html += "<br /><br /><tr><td>&nbsp;</td></tr><tr><td>&nbsp;</td></tr><br /><br />";
+                                }
+
+                                counter++;
+                            }
+                        }
+
+                        return html;// response;
                     default:
                         break;
-                }
-
-                curJobID = credentials.jobID;
-
-                Thread thread = new Thread(() =>
-                    RunJob(credentials)
-                    );
-
-                GlobalServices.lstThread.Add(credentials.jobID + "|" + credentials.city + ", " + credentials.state , thread);
-                thread.Start();
-
-                jresult.Status = "200";
-                jresult.Method = "POST";
-                jresult.Message = curJobID;
-                jresult.Object = new object();
-                result.Add(JObject.Parse(JsonConvert.SerializeObject(jresult)));
+                }               
 
             }
             catch (Exception ex)
@@ -163,7 +212,7 @@ namespace WebScraper.Controllers
             {
                 List<WeatherData> tmpList = ScrapeHtml(credentials);
 
-                GlobalServices.lstJobs.Add(curJobID, tmpList);
+                GlobalServices.lstJobs.Add(curJobID +"|" + credentials.city + ", " + credentials.state, tmpList);
             }
             catch(Exception ex)
             {
