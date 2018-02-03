@@ -98,7 +98,10 @@ namespace WebScraper.Controllers
                     return html;
                 }
 
-                var tmpThread = GlobalServices.lstThread.Where(x => x.Key.Contains(state)).ToList();
+                var tmpThread = GlobalServices.lstThread.Where(x => x.Key.Contains(state)).ToList()
+                    .OrderByDescending(a=>a.Value.ThreadState.ToString())
+                    .ThenBy(b=>b.Key.Split('|')[1]).ToList();
+
                 foreach (var d in tmpThread)
                 {
                     html.Add("<br>" + d.Key.Split('|')[1] + " Status: " + (d.Value.ThreadState == ThreadState.Stopped ? "Completed" : d.Value.ThreadState.ToString()));

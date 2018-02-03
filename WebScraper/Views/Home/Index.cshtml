@@ -128,6 +128,7 @@
         //}
 
         //var data = ajaxCall('api/Scraper', { jobID: jobID, method: 'results' });
+        $('#jobs').append('<tr><td><b><font size="18">Loading Results...</font></b></td></tr>');
 
         $.ajax({
             url: 'api/Scraper',
